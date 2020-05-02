@@ -7,9 +7,11 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -27,17 +29,21 @@ func download(resource *url.URL) []byte {
 	if err != nil {
 		log.Println("*** Error occured NewRequest construction: " + err.Error())
 	}
-	//req.Header.Add("User-Agent", "Mozilla/5.0 (iPhone 10); en-us)")
-	req.Header.Add("User-Agent", "Mozilla/5.0 (iPhone; U; CPU iPhone OS 10 like Mac OS X; en-us)")
+	//req.Header.Add("User-Agent", "Dalvik/4.0.0 (Linux; U; Android 10) CTV; cn")
+	req.Header.Add("User-Agent", "Mozilla/5.0 (Linux; U; Android 4.2.2; en-us; SM-T217S Build/JDQ39) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Safari/534.30")
+	//req.Header.Add("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 10 like Mac OS X; en-us)")
 	//req.Header.Add("User-Agent", "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
 
 	var resp *http.Response
 
-	try := 5
+	try := 1
 	for {
 		resp, err = client.Do(req)
 		if err != nil {
-			log.Println("*** Error occured while downloading: " + err.Error())
+			log.Println("*** Error occured while downloading (sleeping a bit, then retry): " + err.Error())
+			seconds := time.Duration(try*60) * time.Second
+			time.Sleep(seconds)
+			continue
 		}
 		defer resp.Body.Close()
 
@@ -75,11 +81,14 @@ func downloadStream(resource *url.URL) io.Reader {
 
 	var resp *http.Response
 
-	try := 5
+	try := 1
 	for {
 		resp, err = client.Do(req)
 		if err != nil {
-			log.Println("*** Error occured while downloading: " + err.Error())
+			log.Println("*** Error occured while downloading (sleeping a bit then retry): " + err.Error())
+			seconds := time.Duration(try*60) * time.Second
+			time.Sleep(seconds)
+			continue
 		}
 		defer resp.Body.Close()
 
@@ -130,7 +139,6 @@ func parseVersions(content string, developer string, appname string) []string {
 		if strings.Contains(line, searchpattern) {
 			location := strings.Split(line, "/")
 			data[location[4]] = 1
-
 		}
 	}
 
@@ -142,6 +150,30 @@ func parseVersions(content string, developer string, appname string) []string {
 	return retversions
 }
 
+func parseAppPageCount(content string, developer string, appname string) int {
+
+	searchpattern := ">Page 1 of "
+	lines := strings.Split(content, "\n")
+
+	pagecount := 1
+	var err error
+	for _, line := range lines {
+		if strings.Contains(line, searchpattern) {
+			location := strings.Split(line, searchpattern)
+			fmt.Println(location[1])
+			location = strings.Split(location[1], "<")
+			fmt.Println(location[0])
+			pagecount, err = strconv.Atoi(location[0])
+			if err != nil {
+				log.Printf("Error converting %s to integer", location[0])
+			}
+			break
+		}
+	}
+
+	return pagecount
+}
+
 func parseVariants(content string, appname string, version string) []string {
 
 	//searchpattern := fmt.Sprintf("/apk/%s/%s/%s/", developer, appname, version)
@@ -151,8 +183,10 @@ func parseVariants(content string, appname string, version string) []string {
 	data := make(map[string]int)
 	for _, line := range lines {
 		if strings.Contains(line, searchpattern) {
-			location := strings.Split(line, "/")
-			data[location[5]] = 1
+			if strings.Contains(line, " href=\"/apk/") {
+				location := strings.Split(line, "/")
+				data[location[5]] = 1
+			}
 		}
 	}
 
@@ -243,7 +277,10 @@ func downloadFile(developer string, appName string, version string, variant stri
 	for {
 		resp, err = client.Do(req)
 		if err != nil {
-			log.Println("*** Error occured while downloading: " + err.Error())
+			log.Println("*** Error occured while downloading (sleeping a bit, then retry): " + err.Error())
+			seconds := time.Duration(try*60) * time.Second
+			time.Sleep(seconds)
+			continue
 		}
 		defer resp.Body.Close()
 
@@ -279,15 +316,48 @@ func downloadFile(developer string, appName string, version string, variant stri
 	log.Printf("%s file stored. Size %d\n", filelocation, size)
 }
 
-var _logfile *os.File
+// var _logfile *os.File
+// var _indexcache map[string]string
+// var cacheMutex = &sync.Mutex{}
+
+// func reloadCache() {
+// 	cacheMutex.Lock()
+// 	//load cache/index file
+// 	lines := readIndexFile()
+// 	_indexcache = make(map[string]string)
+// 	for _, line := range lines {
+// 		_indexcache[line] = "exists"
+// 	}
+
+// 	cacheMutex.Unlock()
+// }
+
+// func updateCacheEntries() {
+// 	cacheMutex.Lock()
+// 	for _, v := range _indexcache {
+// 		if _indexcache[v] == "new" {
+// 			items := strings.Split(v, ",")
+// 			appendToIndex(items[0], items[1], items[2], items[3], items[4])
+// 		}
+// 	}
+// 	cacheMutex.Unlock()
+// }
+
+// //this will keep running every 60 seconds
+// func refreshCache() {
+// 	log.Println("*** Updating cache")
+// 	updateCacheEntries()
+// 	reloadCache()
+// 	time.AfterFunc(60*time.Second, refreshCache)
+// }
 
 func main() {
-	log.Println("APK Downloader by wunderwuzzi23")
+	log.Println("AppHeist Downloader by wunderwuzzi23")
 
 	//logfile
 	starttime := time.Now()
 	os.Mkdir("logs", 0744)
-	filename := "./logs/aptheist." + starttime.Format("2006-01-02_150405") + ".log"
+	filename := "./logs/appheist." + starttime.Format("2006-01-02_150405") + ".log"
 	_logfile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)
@@ -301,14 +371,66 @@ func main() {
 	var developer string
 	var app string
 	var mode string
+	var pagingStart int
+	var skipVariants bool
 	flag.StringVar(&developer, "developer", "facebook-2", "Developer account")
 	flag.StringVar(&app, "app", "", "Which app?")
-	flag.StringVar(&mode, "mode", "buildindex", "buildindex or download")
+	flag.BoolVar(&skipVariants, "skipvariants", false, "Only index first found variant for version")
+	flag.IntVar(&pagingStart, "pagestart", 1, "Specify the page to start enumerating")
+	flag.StringVar(&mode, "mode", "buildindex", "buildindex, download, listapps, listapps+")
 
 	flag.Parse()
 
 	log.Printf("Options")
-	log.Printf("Dev: %s App: %s Mode: %s", developer, app, mode)
+	log.Printf("Dev: %s App: %s Mode: %s PagingStart: %d SkipVarints: %v", developer, app, mode, pagingStart, skipVariants)
+
+	//construct main url
+	url, err := url.Parse(mirrorApkRoot + developer)
+	if err != nil {
+		log.Println(err)
+	}
+
+	if mode == "listapps" {
+		log.Printf("Use listapps+ for page count for each app (indicator of number of downloads)\n")
+
+		if app == "" {
+			appsHTMLContent := string(download(url))
+			apps := parseApps(developer, appsHTMLContent)
+			for _, appName := range apps {
+				log.Printf("App: %s\n", appName)
+			}
+		} else {
+			log.Printf("Can't specify an app with -listapps.")
+		}
+
+		return
+	}
+
+	if mode == "listapps+" {
+		if app == "" {
+			appsHTMLContent := string(download(url))
+			apps := parseApps(developer, appsHTMLContent)
+			for _, appName := range apps {
+
+				//retrieve number of pages for each app
+				appuploadsString := fmt.Sprintf("https://www.apkmirror.com/uploads/page/1/?q=%s", appName)
+				uploadsURL, err := url.Parse(appuploadsString)
+				if err != nil {
+					log.Printf("AppUpload URL %s: %v ", appuploadsString, err)
+					continue
+				}
+
+				appHTMLVersions := string(download(uploadsURL))
+				pagecount := parseAppPageCount(appHTMLVersions, developer, appName)
+
+				log.Printf("App: %-35s  PageCount: %d\n", appName, pagecount)
+			}
+		} else {
+			log.Printf("Can't specify an app with -listapps.")
+		}
+
+		return
+	}
 
 	if mode == "download" {
 		lines := readIndexFile()
@@ -316,17 +438,21 @@ func main() {
 			log.Printf("Processing line: " + v)
 			line := strings.Split(v, ",")
 			downloadFile(line[0], line[1], line[2], line[3], line[4])
-			time.Sleep(2 * time.Second)
+
+			//be nice to the API
+			rand.Seed(time.Now().UnixNano())
+			n := time.Duration(rand.Intn(180) + 60)
+
+			time.Sleep(n * time.Second)
 		}
 
 		log.Printf("Done.")
 		return
 	}
 
-	url, err := url.Parse(mirrorApkRoot + developer)
-	if err != nil {
-		log.Println(err)
-	}
+	//refreshCache()
+	lines := readIndexFile()
+	fmt.Println("Index loaded. Continuing...")
 
 	//retrieve the apps of the developer
 	var apps = []string{app}
@@ -339,7 +465,7 @@ func main() {
 	log.Println("*** Retrieving apps")
 	for _, appName := range apps {
 
-		page := 1
+		page := pagingStart
 		for { //paging
 
 			//https://www.apkmirror.com/uploads/page/1/?q=facebook
@@ -370,9 +496,22 @@ func main() {
 				log.Println("*** Retrieving download links")
 				for _, variant := range variants {
 					downloadString := fmt.Sprintf("%s%s/%s/%s/%s/download", mirrorApkRoot, developer, appName, version, variant)
-					//log.Println("Variant: " + downloadString)
+					log.Println("Variant: " + downloadString)
 
-					//todo: caching and check if files index contains entry already...
+					//quick check to save some time in case we already have the file
+					skip := false
+					for _, line := range lines {
+						entry := fmt.Sprintf("%s,%s,%s,%s,", developer, appName, version, variant)
+						if strings.Contains(line, entry) {
+							log.Printf("Entry %s already found in index. Skipping", entry)
+							skip = true
+							break
+						}
+					}
+
+					if skip {
+						continue
+					}
 
 					downloadURL, err := url.Parse(downloadString)
 					if err != nil {
@@ -388,6 +527,12 @@ func main() {
 					}
 
 					log.Printf("Retrieved %s\n", downloadString)
+
+					//if user choose to only download one variant per version exit here
+					if skipVariants {
+						fmt.Printf("Skipping Variants...\n")
+						break
+					}
 				}
 			}
 
