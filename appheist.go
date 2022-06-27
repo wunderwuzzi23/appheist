@@ -374,7 +374,7 @@ func main() {
 	var skipVariants bool
 	flag.StringVar(&developer, "developer", "", "Developer account")
 	flag.StringVar(&app, "app", "", "Which app?")
-	flag.BoolVar(&skipVariants, "skipvariants", false, "Only index first found variant for version")
+	flag.BoolVar(&skipVariants, "skipvariants", true, "Only index first found variant for version")
 	flag.IntVar(&pagingStart, "pagestart", 1, "Specify the page to start enumerating")
 	flag.StringVar(&mode, "mode", "buildindex", "buildindex, download, listapps, listapps+")
 
