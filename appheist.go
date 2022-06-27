@@ -74,7 +74,7 @@ func downloadStream(resource *url.URL) io.Reader {
 	if err != nil {
 		log.Println("*** Error occured NewRequest construction: " + err.Error())
 	}
-	req.Header.Add("User-Agent", "Mozilla/5.0 (iPhone; U; CPU iPhone OS 10 like Mac OS X; en-us)")
+	req.Header.Add("User-Agent", _requestHeader)
 
 	var resp *http.Response
 
@@ -351,7 +351,8 @@ func downloadFile(developer string, appName string, version string, variant stri
 // }
 
 func main() {
-	log.Println("AppHeist Downloader by wunderwuzzi23")
+	log.Println("AppHeist by wunderwuzzi23")
+	log.Println("WUNDERWUZZI, LLC")
 
 	//logfile
 	starttime := time.Now()
