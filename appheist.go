@@ -29,10 +29,7 @@ func download(resource *url.URL) []byte {
 	if err != nil {
 		log.Println("*** Error occured NewRequest construction: " + err.Error())
 	}
-	//req.Header.Add("User-Agent", "Dalvik/4.0.0 (Linux; U; Android 10) CTV; cn")
-	req.Header.Add("User-Agent", "Mozilla/5.0 (Linux; U; Android 4.2.2; en-us; SM-T217S Build/JDQ39) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Safari/534.30")
-	//req.Header.Add("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 10 like Mac OS X; en-us)")
-	//req.Header.Add("User-Agent", "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
+	req.Header.Add("User-Agent", _requestHeader)
 
 	var resp *http.Response
 
@@ -110,7 +107,7 @@ func downloadStream(resource *url.URL) io.Reader {
 
 func parseApps(developer string, content string) []string {
 
-	appsearchpattern := "<a class=\"downloadLink\" href=\"/apk/" + developer + "/"
+	appsearchpattern := "<a class=\"fontBlack\" href=\"/apk/" + developer + "/"
 	lines := strings.Split(content, "\n")
 
 	apps := make(map[string]int)
@@ -131,7 +128,7 @@ func parseApps(developer string, content string) []string {
 
 func parseVersions(content string, developer string, appname string) []string {
 
-	searchpattern := fmt.Sprintf("<a class=\"downloadLink\" href=\"/apk/%s/%s", developer, appname)
+	searchpattern := fmt.Sprintf("<a class=\"fontBlack\" href=\"/apk/%s/%s", developer, appname)
 	lines := strings.Split(content, "\n")
 
 	data := make(map[string]int)
@@ -160,9 +157,9 @@ func parseAppPageCount(content string, developer string, appname string) int {
 	for _, line := range lines {
 		if strings.Contains(line, searchpattern) {
 			location := strings.Split(line, searchpattern)
-			fmt.Println(location[1])
+			//fmt.Println(location[1])
 			location = strings.Split(location[1], "<")
-			fmt.Println(location[0])
+			//fmt.Println(location[0])
 			pagecount, err = strconv.Atoi(location[0])
 			if err != nil {
 				log.Printf("Error converting %s to integer", location[0])
@@ -183,7 +180,7 @@ func parseVariants(content string, appname string, version string) []string {
 	data := make(map[string]int)
 	for _, line := range lines {
 		if strings.Contains(line, searchpattern) {
-			if strings.Contains(line, " href=\"/apk/") {
+			if strings.Contains(line, "<a class=\"accent_color\" href=\"/apk/") {
 				location := strings.Split(line, "/")
 				data[location[5]] = 1
 			}
@@ -201,7 +198,8 @@ func parseVariants(content string, appname string, version string) []string {
 func getDownloadLink(content string) []string {
 
 	//searchpattern := "https://www.apkmirror.com/wp-content/themes/APKMirror/download.php?"
-	searchpattern := "/wp-content/themes/APKMirror/download.php?id="
+	//searchpattern := "/wp-content/themes/APKMirror/download.php?id="
+	searchpattern := "/download/?key="
 	lines := strings.Split(content, "\n")
 
 	data := make(map[string]int)
@@ -210,7 +208,7 @@ func getDownloadLink(content string) []string {
 			location := strings.Split(line, "href")
 			location = strings.Split(location[1], "\"")
 
-			//log.Println(location[1])
+			log.Println(location[1])
 			data[location[1]] = 1
 		}
 	}
@@ -224,7 +222,8 @@ func getDownloadLink(content string) []string {
 }
 
 const (
-	mirrorApkRoot = "https://www.apkmirror.com/apk/"
+	mirrorApkRoot  = "https://www.apkmirror.com/apk/"
+	_requestHeader = "Mozilla/5.0 (Linux; U; Android 4.2.2; en-us; SM-T217S Build/JDQ39) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Safari/534.30"
 )
 
 func readIndexFile() []string {
@@ -244,7 +243,7 @@ func readIndexFile() []string {
 }
 
 func appendToIndex(developer string, appname string, version string, variant string, link string) {
-	file, err := os.OpenFile("./files/index", os.O_CREATE|os.O_APPEND, 0755)
+	file, err := os.OpenFile("./files/index", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0755)
 	if err != nil {
 		panic(err)
 	}
@@ -269,7 +268,7 @@ func downloadFile(developer string, appName string, version string, variant stri
 	if err != nil {
 		log.Println("*** Error occured NewRequest construction: " + err.Error())
 	}
-	req.Header.Add("User-Agent", "Mozilla/5.0 (iPhone; U; CPU iPhone OS 10 like Mac OS X; en-us)")
+	req.Header.Add("User-Agent", _requestHeader)
 
 	var resp *http.Response
 
@@ -373,7 +372,7 @@ func main() {
 	var mode string
 	var pagingStart int
 	var skipVariants bool
-	flag.StringVar(&developer, "developer", "facebook-2", "Developer account")
+	flag.StringVar(&developer, "developer", "", "Developer account")
 	flag.StringVar(&app, "app", "", "Which app?")
 	flag.BoolVar(&skipVariants, "skipvariants", false, "Only index first found variant for version")
 	flag.IntVar(&pagingStart, "pagestart", 1, "Specify the page to start enumerating")
@@ -385,7 +384,7 @@ func main() {
 	log.Printf("Dev: %s App: %s Mode: %s PagingStart: %d SkipVarints: %v", developer, app, mode, pagingStart, skipVariants)
 
 	//construct main url
-	url, err := url.Parse(mirrorApkRoot + developer)
+	url, err := url.Parse("https://www.apkmirror.com/?post_type=app_release&searchtype=apk&s=" + developer)
 	if err != nil {
 		log.Println(err)
 	}
@@ -434,15 +433,26 @@ func main() {
 
 	if mode == "download" {
 		lines := readIndexFile()
-		for _, v := range lines {
-			log.Printf("Processing line: " + v)
+		numLines := len(lines)
+		log.Printf("Files to download: %d", numLines)
+		for i, v := range lines {
+			log.Printf("Processing line (%d/%d): %s", i, numLines, v)
 			line := strings.Split(v, ",")
+
+			//check if file already downloaded?
+			checkPath := fmt.Sprintf("./files/%s/%s/%s/%s", line[0], line[1], line[2], line[3])
+			_, err := os.Stat(checkPath)
+			if err == nil {
+				log.Printf("*** Skipping: File %s already found. Skipping download.\n", line[3])
+				continue
+			}
+
 			downloadFile(line[0], line[1], line[2], line[3], line[4])
 
 			//be nice to the API
 			rand.Seed(time.Now().UnixNano())
 			n := time.Duration(rand.Intn(180) + 60)
-
+			n = 1
 			time.Sleep(n * time.Second)
 		}
 
@@ -495,7 +505,8 @@ func main() {
 
 				log.Println("*** Retrieving download links")
 				for _, variant := range variants {
-					downloadString := fmt.Sprintf("%s%s/%s/%s/%s/download", mirrorApkRoot, developer, appName, version, variant)
+
+					downloadString := fmt.Sprintf("%s%s/%s/%s/%s", mirrorApkRoot, developer, appName, version, variant)
 					log.Println("Variant: " + downloadString)
 
 					//quick check to save some time in case we already have the file
