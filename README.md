@@ -25,11 +25,17 @@ Usage of ./appheist:
 ```
 
 
+## List apps by developer
+./appheist -developer "developername" -listapps
+
 ## Index apk files
 `./appheist -developer "developername" -mode buildindex`
 
 ## Download all indexed apks
 `./appheist -developer "developername" -mode download`
+
+## Download a specific app
+./appheist -app "appname" -developer "developername"
 
 
 ## Features
