@@ -198,8 +198,7 @@ func parseVariants(content string, appname string, version string) []string {
 func getDownloadLink(content string) []string {
 
 	//searchpattern := "https://www.apkmirror.com/wp-content/themes/APKMirror/download.php?"
-	//searchpattern := "/wp-content/themes/APKMirror/download.php?id="
-	searchpattern := "/download/?key="
+	searchpattern := "/wp-content/themes/APKMirror/download.php?id="
 	lines := strings.Split(content, "\n")
 
 	data := make(map[string]int)
@@ -351,8 +350,7 @@ func downloadFile(developer string, appName string, version string, variant stri
 // }
 
 func main() {
-	log.Println("AppHeist by wunderwuzzi23")
-	log.Println("WUNDERWUZZI, LLC")
+	log.Println("AppHeist Downloader by wunderwuzzi23")
 
 	//logfile
 	starttime := time.Now()
@@ -479,7 +477,6 @@ func main() {
 		page := pagingStart
 		for { //paging
 
-			//https://www.apkmirror.com/uploads/page/1/?q=facebook
 			appuploadsString := fmt.Sprintf("https://www.apkmirror.com/uploads/page/%d/?q=%s", page, appName)
 			uploadsURL, err := url.Parse(appuploadsString)
 			if err != nil {
@@ -507,7 +504,7 @@ func main() {
 				log.Println("*** Retrieving download links")
 				for _, variant := range variants {
 
-					downloadString := fmt.Sprintf("%s%s/%s/%s/%s", mirrorApkRoot, developer, appName, version, variant)
+					downloadString := fmt.Sprintf("%s%s/%s/%s/%s/download/", mirrorApkRoot, developer, appName, version, variant)
 					log.Println("Variant: " + downloadString)
 
 					//quick check to save some time in case we already have the file
