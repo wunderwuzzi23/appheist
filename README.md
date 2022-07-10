@@ -39,6 +39,8 @@ Provide a developer account or app name and download the relevant apk files.
 By default variants are skipped.
 
 ### Flags:
+
+```
   -app string
         Which app?
   -developer string
@@ -49,7 +51,7 @@ By default variants are skipped.
         Specify the page to start enumerating (default 1)
   -skipvariants
         Only index first found variant for version
-      
+```   
 
 ## Credits
 
