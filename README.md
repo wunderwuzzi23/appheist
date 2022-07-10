@@ -6,6 +6,7 @@ Download apk files for static analysis
 ## Build & Launch
 
 `go build appheist.go`
+
 `mkdir files`
 
 `./appheist. -?`
