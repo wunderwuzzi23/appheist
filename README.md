@@ -5,11 +5,24 @@ Download apk files for static analysis
 
 ## Build & Launch
 
-`go build appheist.go`
+```
+go build appheist.go
+mkdir files`
+./appheist -help
 
-`mkdir files`
-
-`./appheist. -?`
+2022/07/10 00:12:45 AppHeist Downloader by wunderwuzzi23
+Usage of ./appheist:
+  -app string
+        Which app?
+  -developer string
+        Developer account
+  -mode string
+        buildindex, download, listapps, listapps+ (default "buildindex")
+  -pagestart int
+        Specify the page to start enumerating (default 1)
+  -skipvariants
+        Only index first found variant for version
+```
 
 
 ## Index apk files
