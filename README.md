@@ -35,10 +35,9 @@ Usage of ./appheist:
 ## Features
 
 Provide a developer account or app name and download the relevant apk files.
+By default `variants` of an app are skipped.
 
-By default variants are skipped.
-
-### Flags:
+### Flags
 
 ```
   -app string
