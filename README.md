@@ -7,7 +7,7 @@ Download apk files for static analysis
 
 ```
 go build appheist.go
-mkdir files`
+mkdir files
 ./appheist -help
 
 2022/07/10 00:12:45 AppHeist Downloader by wunderwuzzi23
@@ -35,6 +35,8 @@ Usage of ./appheist:
 ## Features
 
 Provide a developer account or app name and download the relevant apk files.
+
+By default variants are skipped.
 
 ### Flags:
   -app string
